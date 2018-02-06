@@ -1,5 +1,6 @@
 import re
 
+
 class CommandParser(object):
 
     def __init__(self, command):
@@ -14,12 +15,11 @@ class CommandParser(object):
         return concat
 
     def parse_parameters(command):
-        #look for '--parameter value' pattern
-        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()]?)\s?)*\")", command)
+        # look for '--parameter value' pattern
+        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()\:\/\,]?)\s?)*\")", command)
         parsedParams = []
 
         for parameter in foundParams:
-            # print(parameter)
             param = re.findall(r"--\w+", parameter)[0]
             value = parameter[len(param):].strip().strip("\"")
 
@@ -29,5 +29,4 @@ class CommandParser(object):
             }
 
             parsedParams.append(mapped)
-        print(parsedParams)
         return parsedParams
