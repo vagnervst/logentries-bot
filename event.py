@@ -1,6 +1,5 @@
 from command import Command
 from commandParser import CommandParser
-import re
 
 class Event:
     def __init__(self, bot):
