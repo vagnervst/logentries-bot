@@ -1,26 +1,20 @@
+from logentriesbot.bots.bot import Bot
 from query import post_query, get_timestamp
 
 
-class Command(object):
-    def __init__(self):
+class LogWatcher(Bot):
+    def __init__(self, bot_name, slack_connection):
+        Bot.__init__(self, bot_name, slack_connection)
+
         self.commands = {
             "jump": self.jump,
             "exec": self.exec,
-            "help": self.help
+            "help": self.help,
+            "hello": self.hello
         }
 
-    def handle_command(self, user, command):
-        response = "<@" + user + ">: "
-
-        if command.name in self.commands:
-            if command.parameters is None:
-                response += self.commands[command.name]()
-            else:
-                response += self.commands[command.name](command.parameters)
-        else:
-            response += "Sorry I don't understand the command: " + command + ". " + self.help()
-
-        return response
+    def jump(self, params=None):
+        return "Kris Kross will make you jump jump"
 
     def exec(self, command):
         for c in command:
@@ -33,9 +27,6 @@ class Command(object):
 
         result = post_query(statement, from_time, to_time)
 
-    def jump(self, params=None):
-        return "Kris Kross will make you jump jump"
-
     def help(self, params=None):
         response = "Currently I support the following commands:\r\n"
 
@@ -43,3 +34,6 @@ class Command(object):
             response += command + "\r\n"
 
         return response
+
+    def hello(self, params=None):
+        return "World!"
