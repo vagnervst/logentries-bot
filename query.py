@@ -58,7 +58,7 @@ def get_timestamp(dt):
 
 def post_query(statement=None, from_time=None, to_time=None):
     body = {"logs": all_test_environment + all_live_environment,
-            "leql": {"during": {"from": ft, "to": tt}, "statement": statement}}
+            "leql": {"during": {"from": from_time, "to": to_time}, "statement": statement}}
     uri = 'https://rest.logentries.com/query/logs/'
     headers = {'x-api-key': config('LOGENTRIES_API_KEY')}
 
@@ -69,7 +69,7 @@ def post_query(statement=None, from_time=None, to_time=None):
             continue_url = response.json()['links'][0]['href']
             response = requests.get(continue_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
         else:
-            print(json.dumps(response.json(), indent=4, separators={':', ';'}))
+            return json.dumps(response.json(), indent=4, separators={':', ';'})
             break
 
 
