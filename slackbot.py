@@ -1,3 +1,3 @@
-import bot
+from logentriesbot.slackEvent import SlackEvent
 
-bot.Bot()
+SlackEvent().listen()
