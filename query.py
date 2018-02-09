@@ -69,8 +69,7 @@ def post_query(statement=None, from_time=None, to_time=None):
             continue_url = response.json()['links'][0]['href']
             response = requests.get(continue_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
         else:
-            return json.dumps(response.json(), indent=4, separators={':', ';'})
-            break
+            return json.dumps(response.json(), indent=4, separators={',', ':'})
 
 
 if __name__ == '__main__':
