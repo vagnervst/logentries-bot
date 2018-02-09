@@ -19,6 +19,7 @@ def fetch_results(provided_url):
 
 
 def get_all_live_environment():
+    all_live_environment_id = 'acd35399-1eb3-45f2-a79e-701b9733a50c'
     all_live_environment_request = fetch_results("https://rest.logentries.com/management/logsets/{0}".format(all_live_environment_id)).json()
     all_live_environment = []
     for log in all_live_environment_request['logset']['logs_info']:
@@ -27,6 +28,7 @@ def get_all_live_environment():
 
 
 def get_all_test_environment():
+    all_test_environment_id = 'a908909c-9217-4feb-83b7-0ed4798fca3a'
     all_test_environment_request = fetch_results("https://rest.logentries.com/management/logsets/{0}".format(all_test_environment_id)).json()
     all_test_environment = []
     for log in all_test_environment_request['logset']['logs_info']:
