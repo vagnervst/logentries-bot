@@ -4,7 +4,6 @@ from prettyconf import config
 import requests
 
 
-
 def get_timestamp(dt):
     dt_obj = datetime.strptime(dt, '%d/%m/%Y %H:%M:%S,%f')
     millisec = int(dt_obj.timestamp() * 1000)
