@@ -16,7 +16,7 @@ class Command(object):
 
     def parse_parameters(self, command):
         # look for '--parameter "value"' pattern
-        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()\:\/\,]?)\s?)*\")", command)
+        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()'\:\/\,]?)\s?)*\")", command)
         parsedParams = []
 
         for parameter in foundParams:

@@ -50,54 +50,31 @@ all_test_environment = [
     "a22898fd-5ffd-4bae-8486-e4fd471104db"]
 
 
-def continue_request(req):
-    if 'links' in req.json():
-        continue_url = req.json()['links'][0]['href']
-        new_response = fetch_results(continue_url)
-        handle_response(new_response)
-
-
-def fetch_results(provided_url):
-    try:
-        response = requests.get(provided_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
-        return response
-    except requests.exceptions.RequestException as error:
-        print(error)
-
-
-def handle_response(resp):
-    response = resp
-    if response.status_code >= 200:
-        if 'events' in response.json():
-            json.dumps(response.json(), indent=4, separators={':', ';'})
-        if 'links' in response.json():
-            continue_request(resp)
-        else:
-            print(json.dumps(response.json(), indent=4, separators={':', ';'}))
-    else:
-        print('Error status code ' + str(response.status_code))
-        return
-
-
-def post_query(statement=None, from_time=None, to_time=None):
-    ft = get_timestamp(from_time)
-    tt = get_timestamp(to_time)
-    body = {"logs": all_test_environment + all_live_environment,
-            "leql": {"during": {"from": ft, "to": tt}, "statement": statement}}
-    uri = 'https://rest.logentries.com/query/logs/'
-    headers = {'x-api-key': config('LOGENTRIES_API_KEY')}
-    r = requests.post(uri, json=body, headers=headers)
-    handle_response(r)
-
-
 def get_timestamp(dt):
     dt_obj = datetime.strptime(dt, '%d/%m/%Y %H:%M:%S,%f')
     millisec = int(dt_obj.timestamp() * 1000)
     return millisec
 
 
+def post_query(statement=None, from_time=None, to_time=None):
+    body = {"logs": all_test_environment + all_live_environment,
+            "leql": {"during": {"from": from_time, "to": to_time}, "statement": statement}}
+    uri = 'https://rest.logentries.com/query/logs/'
+    headers = {'x-api-key': config('LOGENTRIES_API_KEY')}
+
+    response = requests.post(uri, json=body, headers=headers)
+
+    while response.status_code >= 200:
+        if 'links' in response.json():
+            continue_url = response.json()['links'][0]['href']
+            response = requests.get(continue_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
+        else:
+            return json.dumps(response.json(), indent=4, separators={':', ';'})
+            break
+
+
 if __name__ == '__main__':
-    query = "where(statusCode=400) groupby(name)"
-    from_time = get_timestamp("29/01/2018 16:00:00,00")
-    to_time = get_timestamp("29/01/2018 17:00:00,00")
+    query = "where(statusCode=400) groupby(name) calculate(count)"
+    from_time = get_timestamp("08/02/2018 09:00:00,00")
+    to_time = get_timestamp("08/02/2018 09:30:00,00")
     post_query(query, from_time, to_time)

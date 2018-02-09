@@ -21,11 +21,11 @@ class LogWatcher(Bot):
             if c['name'] == 'query':
                 statement = c['value']
             elif c['name'] == 'from':
-                from_time = c['value']
+                from_time = get_timestamp(c['value'])
             elif c['name'] == 'to':
-                to_time = c['value']
+                to_time = get_timestamp(c['value'])
 
-        result = post_query(statement, from_time, to_time)
+        return post_query(statement, from_time, to_time)
 
     def help(self, params=None):
         response = "Currently I support the following commands:\r\n"
