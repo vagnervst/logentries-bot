@@ -1,4 +1,5 @@
 from logentriesbot.bots.bot import Bot
+from companies import add_company
 from query import post_query, get_timestamp
 
 
@@ -9,11 +10,25 @@ class LogWatcher(Bot):
         self.commands = {
             "jump": self.jump,
             "exec": self.exec,
+            "add": self.add,
             "help": self.help,
         }
 
     def jump(self, params=None):
         return "Kris Kross will make you jump jump"
+
+    def add(self, command):
+        for c in command:
+            if c['name'] == 'id':
+                company_id = c['value']
+            elif c['name'] == 'interval':
+                interval = c['value']
+            elif c['name'] == 'request_mode':
+                request_mode = c['value']
+            elif c['name'] == 'error_codes':
+                error_codes = c['value']
+
+        return add_company(company_id, interval, request_mode, error_codes)
 
     def exec(self, command):
         for c in command:
