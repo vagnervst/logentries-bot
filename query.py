@@ -5,7 +5,7 @@ import requests
 
 
 def get_timestamp(dt):
-    dt_obj = datetime.strptime(dt, '%d/%m/%Y %H:%M:%S,%f')
+    dt_obj = datetime.strptime(dt, '%d/%m/%Y %H:%M:%S')
     millisec = int(dt_obj.timestamp() * 1000)
     return millisec
 
@@ -54,6 +54,6 @@ def post_query(statement=None, from_time=None, to_time=None):
 
 if __name__ == '__main__':
     query = "where(statusCode=400) groupby(name) calculate(count)"
-    from_time = get_timestamp("08/02/2018 09:00:00,00")
-    to_time = get_timestamp("08/02/2018 09:30:00,00")
+    from_time = get_timestamp("16/02/2018 11:30:00")
+    to_time = get_timestamp("09/02/2018 11:30:00")
     post_query(query, from_time, to_time)
