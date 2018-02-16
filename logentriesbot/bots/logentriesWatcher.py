@@ -10,7 +10,6 @@ class LogWatcher(Bot):
             "jump": self.jump,
             "exec": self.exec,
             "help": self.help,
-            "hello": self.hello
         }
 
     def jump(self, params=None):
@@ -34,6 +33,3 @@ class LogWatcher(Bot):
             response += command + "\r\n"
 
         return response
-
-    def hello(self, params=None):
-        return "World!"
