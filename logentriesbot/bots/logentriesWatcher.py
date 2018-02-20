@@ -1,4 +1,6 @@
 from logentriesbot.bots.bot import Bot
+from logentriesbot.client.cron import check
+from logentriesbot.client.logentries import post_query, get_timestamp
 
 
 class LogWatcher(Bot):
