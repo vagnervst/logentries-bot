@@ -8,25 +8,23 @@ class LogWatcher(Bot):
         self.commands = {
             "jump": self.jump,
             "exec": self.exec,
-            "add": self.add,
+            "check": self.check,
             "help": self.help,
         }
 
     def jump(self, params=None):
         return "Kris Kross will make you jump jump"
 
-    def add(self, command):
+    def check(self, command):
         for c in command:
             if c['name'] == 'id':
                 company_id = c['value']
-            elif c['name'] == 'interval':
-                interval = c['value']
-            elif c['name'] == 'request_mode':
-                request_mode = c['value']
-            elif c['name'] == 'error_codes':
-                error_codes = c['value']
+            if c['name'] == 'quantity':
+                quantity = int(c['value'])
+            if c['name'] == 'unit':
+                unit = c['value']
 
-        return add_company(company_id, interval, request_mode, error_codes)
+        return check(company_id, quantity, unit)
 
     def exec(self, command):
         for c in command:
