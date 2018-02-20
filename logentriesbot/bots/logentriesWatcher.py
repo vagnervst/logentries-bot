@@ -1,6 +1,4 @@
 from logentriesbot.bots.bot import Bot
-from companies import add_company
-from query import post_query, get_timestamp
 
 
 class LogWatcher(Bot):
