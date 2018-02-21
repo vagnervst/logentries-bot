@@ -1,6 +1,6 @@
 from logentriesbot.bots.bot import Bot
-from logentriesbot.client.cron import check
 from logentriesbot.client.logentries import post_query, get_timestamp
+from logentriesbot.monitoring import check, add_company
 
 
 class LogWatcher(Bot):
@@ -8,6 +8,7 @@ class LogWatcher(Bot):
         Bot.__init__(self, bot_name, slack_connection)
 
         self.commands = {
+            "add": self.add,
             "jump": self.jump,
             "exec": self.exec,
             "check": self.check,
@@ -27,6 +28,17 @@ class LogWatcher(Bot):
                 unit = c['value']
 
         return check(company_id, quantity, unit)
+
+    def add(self, command):
+        for c in command:
+            if c['name'] == 'id':
+                company_id = c['value']
+            if c['name'] == 'quantity':
+                quantity = int(c['value'])
+            if c['name'] == 'unit':
+                unit = c['value']
+
+        return add_company(company_id, quantity, unit)
 
     def exec(self, command):
         for c in command:
