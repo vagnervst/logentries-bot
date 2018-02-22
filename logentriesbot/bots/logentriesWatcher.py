@@ -29,7 +29,7 @@ class LogWatcher(Bot):
 
         return check(company_id, quantity, unit)
 
-    def add(self, command):
+    def add(self, command, callback):
         for c in command:
             if c['name'] == 'id':
                 company_id = c['value']
@@ -38,7 +38,7 @@ class LogWatcher(Bot):
             if c['name'] == 'unit':
                 unit = c['value']
 
-        return add_company(company_id, quantity, unit)
+        return add_company(company_id, quantity, unit, callback)
 
     def exec(self, command):
         for c in command:
