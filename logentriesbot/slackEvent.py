@@ -42,15 +42,27 @@ class SlackEvent(object):
                 commandFromUser = commandFromUser.strip()
                 command = Command(commandFromUser)
 
-                event_response = self.handle_event(command, attached_bot)
-                message = {
-                    'message': event_response,
-                    'channel': event['channel'],
-                    'user': event['user']
-                }
+                if command.name == 'add':
+                    self.event = event
+                    self.handle_event_async(command, attached_bot, self.async_handler)
+                else:
+                    event_response = self.handle_event(command, attached_bot)
+                    message = {
+                        'message': event_response,
+                        'channel': event['channel'],
+                        'user': event['user']
+                    }
 
-                print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
-                self.answer(message)
+                    print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
+                    self.answer(message)
+
+    def async_handler(self, response):
+        message = {
+            'message': response,
+            'channel': self.event['channel'],
+            'user': self.event['user']
+        }
+        self.answer(message)
 
     def answer(self, message):
         response = "<@" + message['user'] + "> " if message['user'] else ""
@@ -62,3 +74,9 @@ class SlackEvent(object):
             print("Parameters used: " + command.join_parameters())
 
         return bot.handle_command(command)
+
+    def handle_event_async(self, command, bot, callback):
+        if command.parameters:
+            print("Parameters used: " + command.join_parameters())
+
+        return bot.handle_command_async(command, callback)
