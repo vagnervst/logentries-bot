@@ -1,3 +1,6 @@
+from logentriesbot.command import Command
+
+
 class Bot(object):
     def __init__(self, bot_name, slack_connection):
         self.name = bot_name
@@ -8,7 +11,7 @@ class Bot(object):
         response = "Sorry I don't understand the command: " + command.name
 
         if command.name in self.commands:
-            response = self.commands[command.name](command.parameters)
+            response = self.commands[command.name]['fn'](command.parameters)
 
         return response
 
@@ -19,3 +22,11 @@ class Bot(object):
             response = self.commands[command.name](command.parameters, callback)
 
         return response
+
+    def get_command(self, command):
+        if command in self.commands:
+            command_spec = self.commands[command]
+            async = True if 'async' in command_spec else False
+            return Command(command, async)
+
+        return None

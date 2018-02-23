@@ -8,11 +8,22 @@ class LogWatcher(Bot):
         Bot.__init__(self, bot_name, slack_connection)
 
         self.commands = {
-            "add": self.add,
-            "jump": self.jump,
-            "exec": self.exec,
-            "check": self.check,
-            "help": self.help,
+            "add": {
+                "fn": self.add,
+                "async": True
+            },
+            "jump": {
+                "fn": self.jump
+            },
+            "exec": {
+                "fn": self.exec
+            },
+            "check": {
+                "fn": self.check
+            },
+            "help": {
+                "fn": self.help
+            }
         }
 
     def jump(self, params=None):
