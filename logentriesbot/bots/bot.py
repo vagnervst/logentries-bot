@@ -7,6 +7,9 @@ class Bot(object):
         self.id = slack_connection.get_bot_id(bot_name)
         self.commands = {}
 
+    def pre_command_handle(self, command):
+        pass
+
     def handle_command(self, command):
         response = "Sorry I don't understand the command: " + command.name
 

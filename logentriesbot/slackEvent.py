@@ -1,7 +1,6 @@
 import time
 from prettyconf import config
 
-from logentriesbot.command import Command
 from logentriesbot.client.slack import SlackConnection
 from logentriesbot.bots.logentriesWatcher import LogWatcher
 

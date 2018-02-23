@@ -10,6 +10,7 @@ class LogWatcher(Bot):
         self.commands = {
             "add": {
                 "fn": self.add,
+                "required_params": ["id", "quantity", "unit"],
                 "async": True
             },
             "jump": {
@@ -19,7 +20,8 @@ class LogWatcher(Bot):
                 "fn": self.exec
             },
             "check": {
-                "fn": self.check
+                "fn": self.check,
+                "required_params": ["id", "quantity", "unit"]
             },
             "help": {
                 "fn": self.help
