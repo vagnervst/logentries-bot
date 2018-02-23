@@ -10,23 +10,37 @@ class Bot(object):
     def handle_command(self, command):
         response = "Sorry I don't understand the command: " + command.name
 
-        if command.name in self.commands:
-            response = self.commands[command.name]['fn'](command.parameters)
+        command_spec = self.get_command(command.name)
+        if command_spec is not None:
+            command_function = command_spec['fn']
+            response = command_function(command.parameters)
 
         return response
 
     def handle_command_async(self, command, callback):
         response = "Sorry I don't understand the command: " + command.name
 
-        if command.name in self.commands:
-            response = self.commands[command.name](command.parameters, callback)
+        command_spec = self.get_command(command.name)
+        if command_spec is not None:
+            command_function = command_spec['fn']
+            response = command_function(command.parameters, callback)
 
         return response
 
-    def get_command(self, command):
-        if command in self.commands:
-            command_spec = self.commands[command]
-            async = True if 'async' in command_spec else False
-            return Command(command, async)
+    def get_built_command(self, command_name):
+        command_spec = self.get_command(command_name)
 
-        return None
+        command = None
+        if command_spec is not None:
+            async = True if 'async' in command_spec else False
+            command = Command(command_name, async)
+
+        return command
+
+    def get_command(self, command_name):
+        command = None
+
+        if command_name in self.commands:
+            command = self.commands[command_name]
+
+        return command

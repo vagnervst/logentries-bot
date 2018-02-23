@@ -40,7 +40,7 @@ class SlackEvent(object):
             if attached_bot is not None:
                 commandFromUser = event['text'].split(mentioned_bot_id)[1]
                 commandFromUser = commandFromUser.strip()
-                command = attached_bot.get_command(commandFromUser)
+                command = attached_bot.get_built_command(commandFromUser)
 
                 if command.async:
                     self.event = event
