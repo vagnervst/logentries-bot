@@ -30,15 +30,14 @@ class Bot(object):
 
         return response
 
-    def get_built_command(self, command_name):
-        command_spec = self.get_command(command_name)
+    def get_built_command(self, command):
+        command_obj = Command(command, False)
+        command_spec = self.get_command(command_obj.name)
 
-        command = None
         if command_spec is not None:
-            async = True if 'async' in command_spec else False
-            command = Command(command_name, async)
+            command_obj.async = True if 'async' in command_spec else False
 
-        return command
+        return command_obj
 
     def get_command(self, command_name):
         command = None
