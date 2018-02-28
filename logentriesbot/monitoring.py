@@ -11,7 +11,7 @@ scheduler.start()
 def check(job_id, company_id, quantity, unit, callback, status_code=400):
     from_time = get_interval_bound(quantity, unit)
     errors_quantity = get_how_many(company_id, from_time, status_code)
-    callback("*[JOB:{}]* Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, errors_quantity, str(quantity), unit))
+    callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, errors_quantity, str(quantity), unit))
 
 
 def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
