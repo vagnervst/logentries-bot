@@ -2,7 +2,7 @@ import ast
 from apscheduler.schedulers.background import BackgroundScheduler
 from logentriesbot.client.logentries import get_interval_bound, get_how_many, get_how_many_each_error
 import uuid
-
+from urllib.parse import quote
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -10,18 +10,22 @@ scheduler.start()
 
 def check(job_id, company_id, quantity, unit, callback, status_code=400):
     from_time = get_interval_bound(quantity, unit)
-    errors_quantity = get_how_many(company_id, from_time, status_code)
-    callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, errors_quantity, str(quantity), unit))
+    errors = get_how_many(company_id, from_time, status_code)
+
+    link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
+    callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, errors["errors"], str(quantity), unit, link))
 
 
 def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
     from_time = get_interval_bound(quantity, unit)
     errors = get_how_many_each_error(company_id, from_time, status_code)
-    if len(errors) > 0:
-        for e in errors:
-            callback("[job_id: *{}*] Company *{}* had *{}* errors \"{}\" in last {} {}!".format(job_id, company_id, e['quantity'], e['message'], str(quantity), unit))
+
+    link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
+    if len(errors["errors"]) > 0:
+        for e in errors["errors"]:
+            callback("[job_id: *{}*] Company *{}* had *{}* errors \"{}\" in last {} {}! <{}|Run it!>".format(job_id, company_id, e['quantity'], e['message'], str(quantity), unit, link))
     else:
-        callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, 0, str(quantity), unit))
+        callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, 0, str(quantity), unit, link))
 
 
 def add_company(company_id, quantity, unit, callback, status_code=400, error_message=False):
