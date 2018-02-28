@@ -1,19 +1,59 @@
+import ast
 from apscheduler.schedulers.background import BackgroundScheduler
-from logentriesbot.client.logentries import get_interval_bound, get_how_many_400
+from logentriesbot.client.logentries import get_interval_bound, get_how_many, get_how_many_each_error
+import uuid
 
 
-def check(company_id, quantity, unit, callback):
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+
+def check(job_id, company_id, quantity, unit, callback, status_code=400):
     from_time = get_interval_bound(quantity, unit)
-    # print("Company {} had {} errors in last {} {}!".format(company_id, get_how_many_400(company_id, from_time), str(quantity), unit))
-    errors_quantity = get_how_many_400(company_id, from_time)
-    callback( "Company {} had {} errors in last {} {}!".format(company_id, errors_quantity, str(quantity), unit) )
+    errors_quantity = get_how_many(company_id, from_time, status_code)
+    callback("*[JOB:{}]* Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, errors_quantity, str(quantity), unit))
 
-def add_company(company_id, quantity, unit, callback):
+
+def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
+    from_time = get_interval_bound(quantity, unit)
+    errors = get_how_many_each_error(company_id, from_time, status_code)
+    if len(errors) > 0:
+        for e in errors:
+            callback("[job_id: *{}*] Company *{}* had *{}* errors \"{}\" in last {} {}!".format(job_id, company_id, e['quantity'], e['message'], str(quantity), unit))
+    else:
+        callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}!".format(job_id, company_id, 0, str(quantity), unit))
+
+
+def add_company(company_id, quantity, unit, callback, status_code=400, error_message=False):
+    global scheduler
+
     # unit must be: minutes, hours, days or weeks
     kwargs = {unit: quantity}
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(check, 'interval', [company_id, quantity, unit, callback], **kwargs)
-    scheduler.start()
+    job_id = str(uuid.uuid4())[:8]
 
-    return "Watching company {}".format(company_id)
+    error_message = ast.literal_eval(error_message)
+
+    if error_message:
+        scheduler.add_job(check_messages, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
+    else:
+        scheduler.add_job(check, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
+
+    callback("Watching company *{}*!".format(company_id))
+    callback("Use `@logentries_bot remove --job_id \"{}\"` to stop monitoring company *{}*".format(job_id, company_id))
+
+
+def remove_company(job_id, callback):
+    global scheduler
+
+    job = scheduler.get_job(job_id=job_id)
+    if job:
+        company_id = str(job.name)
+
+    try:
+        scheduler.pause_job(job_id=job_id)
+        scheduler.remove_job(job_id=job_id)
+    except:
+        callback("Error! Check job_id and try again!")
+
+    callback("Stopped monitoring company *{}*!".format(company_id))
