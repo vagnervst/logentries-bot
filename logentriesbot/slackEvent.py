@@ -1,7 +1,6 @@
 import time
 from prettyconf import config
 
-from logentriesbot.command import Command
 from logentriesbot.client.slack import SlackConnection
 from logentriesbot.bots.logentriesWatcher import LogWatcher
 
@@ -40,9 +39,9 @@ class SlackEvent(object):
             if attached_bot is not None:
                 commandFromUser = event['text'].split(mentioned_bot_id)[1]
                 commandFromUser = commandFromUser.strip()
-                command = Command(commandFromUser)
+                command = attached_bot.get_built_command(commandFromUser)
 
-                if command.name == 'add':
+                if command.async:
                     self.event = event
                     self.handle_event_async(command, attached_bot, self.async_handler)
                 else:

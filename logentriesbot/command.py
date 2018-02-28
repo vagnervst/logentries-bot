@@ -3,9 +3,10 @@ import re
 
 class Command(object):
 
-    def __init__(self, commandString):
+    def __init__(self, commandString, async=False):
         self.name = commandString.split(' ')[0].lower()
         self.parameters = self.parse_parameters(commandString)
+        self.async = async
 
     def join_parameters(self):
         concat = ""
@@ -16,7 +17,7 @@ class Command(object):
 
     def parse_parameters(self, command):
         # look for '--parameter "value"' pattern
-        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()'\:\/\,]?)\s?)*\")", command)
+        foundParams = re.findall(r"(--\w+\s+\"(?:\s?(?:[\w<>=()'\:\/\,\-]?)\s?)*\")", command)
         parsedParams = []
 
         for parameter in foundParams:

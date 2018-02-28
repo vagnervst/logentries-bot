@@ -8,18 +8,31 @@ class LogWatcher(Bot):
         Bot.__init__(self, bot_name, slack_connection)
 
         self.commands = {
-            "add": self.add,
-            "jump": self.jump,
-            "exec": self.exec,
-            "check": self.check,
-            "help": self.help,
+            "add": {
+                "fn": self.add,
+                "required_params": ["id", "quantity", "unit"],
+                "async": True
+            },
+            "jump": {
+                "fn": self.jump
+            },
+            "exec": {
+                "fn": self.exec
+            },
+            "check": {
+                "fn": self.check,
+                "required_params": ["id", "quantity", "unit"]
+            },
+            "help": {
+                "fn": self.help
+            }
         }
 
     def jump(self, params=None):
         return "Kris Kross will make you jump jump"
 
-    def check(self, command):
-        for c in command:
+    def check(self, params):
+        for c in params:
             if c['name'] == 'id':
                 company_id = c['value']
             if c['name'] == 'quantity':
@@ -29,8 +42,9 @@ class LogWatcher(Bot):
 
         return check(company_id, quantity, unit)
 
-    def add(self, command, callback):
-        for c in command:
+    def add(self, params, callback):
+
+        for c in params:
             if c['name'] == 'id':
                 company_id = c['value']
             if c['name'] == 'quantity':
@@ -40,8 +54,8 @@ class LogWatcher(Bot):
 
         return add_company(company_id, quantity, unit, callback)
 
-    def exec(self, command):
-        for c in command:
+    def exec(self, params):
+        for c in params:
             if c['name'] == 'query':
                 statement = c['value']
             elif c['name'] == 'from':
