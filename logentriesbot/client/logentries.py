@@ -1,3 +1,4 @@
+import ast
 import json
 from datetime import datetime
 from datetime import timedelta
@@ -42,8 +43,8 @@ def get_all_test_environment():
     return all_test_environment
 
 
-def get_how_many_400(company_id, from_time):
-    statement = "where(statusCode=400 AND _id={id}) groupby(_id) calculate(count)".format(id=company_id)
+def get_how_many(company_id, from_time, status_code=400):
+    statement = "where(statusCode={status_code} AND _id={id} AND /POST/) groupby(_id) calculate(count)".format(status_code=status_code, id=company_id)
     to_time = get_timestamp(datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S"))
 
     response = post_query(statement, from_time, to_time)
@@ -53,6 +54,36 @@ def get_how_many_400(company_id, from_time):
         errors = response['statistics']['groups'][0][company_id]['count']
     else:
         errors = 0
+    return errors
+
+
+def get_how_many_each_error(company_id, from_time, status_code=400):
+    statement = "where(statusCode={status_code} AND _id={id} AND /POST/)".format(status_code=status_code, id=company_id)
+    to_time = get_timestamp(datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S"))
+
+    response = post_query(statement, from_time, to_time)
+    response = json.loads(response)
+
+    errors = []
+
+    for event in response['events']:
+        message = event['message'][1:]
+        message = ast.literal_eval(message)
+
+        err_msg = ", "
+        errors_messages = []
+        for error in message['body']['errors']:
+            errors_messages.append(error['message'])
+        err_msg = err_msg.join(errors_messages)
+
+        error_added = False
+        for error in errors:
+            if error['message'] == err_msg:
+                error['quantity'] += 1
+                error_added = True
+        if not error_added:
+            errors.append({'message': err_msg, 'quantity': 1})
+
     return errors
 
 
