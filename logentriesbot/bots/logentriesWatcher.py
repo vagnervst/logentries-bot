@@ -1,6 +1,6 @@
 from logentriesbot.bots.bot import Bot
 from logentriesbot.client.logentries import post_query, get_timestamp
-from logentriesbot.monitoring import check, add_company
+from logentriesbot.monitoring import add_company, remove_company
 
 
 class LogWatcher(Bot):
@@ -10,7 +10,12 @@ class LogWatcher(Bot):
         self.commands = {
             "add": {
                 "fn": self.add,
-                "required_params": ["id", "quantity", "unit"],
+                "required_params": ["company_id", "status_code", "error_message", "quantity", "unit"],
+                "async": True
+            },
+            "remove": {
+                "fn": self.remove,
+                "required_params": ["job_id"],
                 "async": True
             },
             "jump": {
@@ -18,10 +23,6 @@ class LogWatcher(Bot):
             },
             "exec": {
                 "fn": self.exec
-            },
-            "check": {
-                "fn": self.check,
-                "required_params": ["id", "quantity", "unit"]
             },
             "help": {
                 "fn": self.help
@@ -31,28 +32,29 @@ class LogWatcher(Bot):
     def jump(self, params=None):
         return "Kris Kross will make you jump jump"
 
-    def check(self, params):
-        for c in params:
-            if c['name'] == 'id':
-                company_id = c['value']
-            if c['name'] == 'quantity':
-                quantity = int(c['value'])
-            if c['name'] == 'unit':
-                unit = c['value']
-
-        return check(company_id, quantity, unit)
-
     def add(self, params, callback):
-
         for c in params:
-            if c['name'] == 'id':
+            if c['name'] == 'company_id':
                 company_id = c['value']
-            if c['name'] == 'quantity':
+            elif c['name'] == 'status_code':
+                status_code = int(c['value'])
+            elif c['name'] == 'error_message':
+                error_message = c['value']
+            elif c['name'] == 'quantity':
                 quantity = int(c['value'])
-            if c['name'] == 'unit':
+            elif c['name'] == 'unit':
                 unit = c['value']
+        try:
+            return add_company(company_id, quantity, unit, callback, status_code, error_message)
+        except:
+            print("Missing one or more parameters! Check and try again!")
 
-        return add_company(company_id, quantity, unit, callback)
+    def remove(self, params, callback):
+        for c in params:
+            if c['name'] == "job_id":
+                job_id = c['value']
+
+        return remove_company(job_id, callback)
 
     def exec(self, params):
         for c in params:
