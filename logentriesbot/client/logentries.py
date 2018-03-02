@@ -50,11 +50,16 @@ def get_how_many(company_id, from_time, status_code=400):
     response = post_query(statement, from_time, to_time)
     response = json.loads(response)
 
+    errors = 0
     if len(response['statistics']['groups']) > 0:
         errors = response['statistics']['groups'][0][company_id]['count']
-    else:
-        errors = 0
-    return errors
+
+    result = {
+        "errors": errors,
+        "query": statement
+    }
+
+    return result
 
 
 def get_how_many_each_error(company_id, from_time, status_code=400):
@@ -84,7 +89,10 @@ def get_how_many_each_error(company_id, from_time, status_code=400):
         if not error_added:
             errors.append({'message': err_msg, 'quantity': 1})
 
-    return errors
+    return {
+        "query": statement,
+        "errors": errors
+    }
 
 
 def fetch_results(provided_url):
