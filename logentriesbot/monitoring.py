@@ -43,7 +43,7 @@ def add_company(company_id, quantity, unit, callback, status_code=400, error_mes
     else:
         scheduler.add_job(check, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
 
-    callback("Watching company *{}*!".format(company_id))
+    callback("[job_id: *{}*] Watching company *{}*!".format(job_id, company_id))
     callback("Use `@logentries_bot remove --job_id \"{}\"` to stop monitoring company *{}*".format(job_id, company_id))
 
 
@@ -60,4 +60,14 @@ def remove_company(job_id, callback):
     except:
         callback("Error! Check job_id and try again!")
 
-    callback("Stopped monitoring company *{}*!".format(company_id))
+    callback("[job_id: *{}*] Stopped monitoring company *{}*!".format(job_id, company_id))
+
+
+def get_jobs(callback):
+    global scheduler
+
+    jobs = scheduler.get_jobs()
+
+    callback("Running jobs: ")
+    for job in jobs:
+        callback("job_id: *{}* watching company *{}*".format(job.id, job.name))
