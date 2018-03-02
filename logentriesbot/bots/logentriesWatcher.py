@@ -1,6 +1,6 @@
 from logentriesbot.bots.bot import Bot
 from logentriesbot.client.logentries import post_query, get_timestamp
-from logentriesbot.monitoring import add_company, remove_company
+from logentriesbot.monitoring import add_company, remove_company, get_jobs
 
 
 class LogWatcher(Bot):
@@ -16,6 +16,10 @@ class LogWatcher(Bot):
             "remove": {
                 "fn": self.remove,
                 "required_params": ["job_id"],
+                "async": True
+            },
+            "get_jobs": {
+                "fn": self.get_jobs,
                 "async": True
             },
             "jump": {
@@ -55,6 +59,9 @@ class LogWatcher(Bot):
                 job_id = c['value']
 
         return remove_company(job_id, callback)
+
+    def get_jobs(self, params, callback):
+        return get_jobs(callback)
 
     def exec(self, params):
         for c in params:
