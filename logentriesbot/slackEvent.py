@@ -10,7 +10,7 @@ class SlackEvent(object):
     def __init__(self):
         self.client = SlackConnection(config('SLACK_API_TOKEN'))
 
-        logWatcher = LogWatcher('logentries_bot', self.client)
+        logWatcher = LogWatcher('supportbot', self.client)
 
         self.client.attach_bot(logWatcher)
 
@@ -32,7 +32,7 @@ class SlackEvent(object):
                 self.parse_event(event)
 
     def parse_event(self, event):
-        if event.get('type') == 'message':
+        if event.get('type') == 'message' and "text" in event:
             mentioned_bot_id = event['text'].split(' ')[0]
             attached_bot = self.client.get_attached_bot(mentioned_bot_id)
 

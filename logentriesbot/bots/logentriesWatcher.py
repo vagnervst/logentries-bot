@@ -1,6 +1,8 @@
 from logentriesbot.bots.bot import Bot
-from logentriesbot.client.logentries import post_query, get_timestamp
-from logentriesbot.monitoring import add_company, remove_company
+from logentriesbot.client.logentries import LogentriesConnection, Query
+from logentriesbot.client.logentrieshelper import LogentriesHelper
+from logentriesbot.monitoring import add_company, remove_company, get_jobs
+from prettyconf import config
 
 
 class LogWatcher(Bot):
@@ -10,7 +12,13 @@ class LogWatcher(Bot):
         self.commands = {
             "add": {
                 "fn": self.add,
-                "required_params": ["company_id", "status_code", "error_message", "quantity", "unit"],
+                "required_params": [
+                    "company_id",
+                    "status_code",
+                    "error_message",
+                    "quantity",
+                    "unit"
+                ],
                 "async": True
             },
             "remove": {
@@ -18,11 +26,15 @@ class LogWatcher(Bot):
                 "required_params": ["job_id"],
                 "async": True
             },
+            "get_jobs": {
+                "fn": self.get_jobs,
+                "async": True
+            },
             "jump": {
                 "fn": self.jump
             },
-            "exec": {
-                "fn": self.exec
+            "query": {
+                "fn": self.query
             },
             "help": {
                 "fn": self.help
@@ -45,8 +57,11 @@ class LogWatcher(Bot):
             elif c['name'] == 'unit':
                 unit = c['value']
         try:
-            return add_company(company_id, quantity, unit, callback, status_code, error_message)
-        except:
+            return add_company(
+                company_id, quantity, unit,
+                callback, status_code, error_message
+            )
+        except Exception:
             print("Missing one or more parameters! Check and try again!")
 
     def remove(self, params, callback):
@@ -56,16 +71,27 @@ class LogWatcher(Bot):
 
         return remove_company(job_id, callback)
 
-    def exec(self, params):
+    def get_jobs(self, params, callback):
+        return get_jobs(callback)
+
+    def query(self, params):
         for c in params:
             if c['name'] == 'query':
                 statement = c['value']
             elif c['name'] == 'from':
-                from_time = get_timestamp(c['value'])
+                from_time = LogentriesHelper.get_timestamp(c['value'])
             elif c['name'] == 'to':
-                to_time = get_timestamp(c['value'])
+                to_time = LogentriesHelper.get_timestamp(c['value'])
 
-        return post_query(statement, from_time, to_time)
+        logs = LogentriesHelper.get_all_test_environment()
+        + LogentriesHelper.get_all_live_environment()
+
+        query = Query(statement, {
+            'from': from_time, 'to': to_time
+        }, logs)
+
+        client = LogentriesConnection(config('LOGENTRIES_API_KEY'))
+        return client.post('/query/logs', query.build())
 
     def help(self, params=None):
         response = "Currently I support the following commands:\r\n"
