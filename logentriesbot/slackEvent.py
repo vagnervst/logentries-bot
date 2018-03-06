@@ -11,6 +11,7 @@ class SlackEvent(object):
         self.client = SlackConnection(config('SLACK_API_TOKEN'))
 
         logWatcher = LogWatcher('logentries_bot', self.client)
+        logWatcher = LogWatcher('supportbot', self.client)
 
         self.client.attach_bot(logWatcher)
 
