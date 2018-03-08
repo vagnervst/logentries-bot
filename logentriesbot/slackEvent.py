@@ -1,3 +1,4 @@
+import json
 import time
 from prettyconf import config
 
@@ -65,8 +66,12 @@ class SlackEvent(object):
 
     def answer(self, message):
         response = "<@" + message['user'] + "> " if message['user'] else ""
-        response += message['message']
-        self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
+        if 'fields' in message['message']:
+            response += "Alarm Fired!"
+            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, attachments=message['message'], as_user=True)
+        else:
+            response += message['message']
+            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
 
     def handle_event(self, command, bot):
         if command.parameters:
