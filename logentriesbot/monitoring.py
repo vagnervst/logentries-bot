@@ -1,4 +1,5 @@
 import ast
+import json
 from apscheduler.schedulers.background import BackgroundScheduler
 from logentriesbot.client.logentries import get_interval_bound, get_how_many, get_how_many_each_error
 import uuid
@@ -13,7 +14,10 @@ def check(job_id, company_id, quantity, unit, callback, status_code=400):
     errors = get_how_many(company_id, from_time, status_code)
 
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
-    callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, errors["errors"], str(quantity), unit, link))
+
+    alert = json.dumps([{"title": "Run It!", "title_link": link, "color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(errors['errors'], str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+
+    callback(alert)
 
 
 def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
