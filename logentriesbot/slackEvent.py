@@ -50,7 +50,7 @@ class SlackEvent(object):
                         event_response = self.handle_event(command, attached_bot)
                         message = {
                             'message': event_response,
-                            'channel': event['channel'],
+                            'channel': event['user'],
                             'user': event['user']
                         }
 
@@ -60,7 +60,7 @@ class SlackEvent(object):
     def async_handler(self, response):
         message = {
             'message': response,
-            'channel': self.event['channel'],
+            'channel': self.event['user'],
             'user': self.event['user']
         }
         self.answer(message)
