@@ -27,9 +27,20 @@ def check_messages(job_id, company_id, quantity, unit, callback, status_code=400
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
     if len(errors["errors"]) > 0:
         for e in errors["errors"]:
-            callback("[job_id: *{}*] Company *{}* had *{}* errors \"{}\" in last {} {}! <{}|Run it!>".format(job_id, company_id, e['quantity'], e['message'], str(quantity), unit, link))
+            error = e['message']
+            qtd = e['quantity']
+            alert = json.dumps([{"color": "#EA1212",
+                                 "fields": [{"title": "Company", "value": company_id, "short": True},
+                                            {"title": "Status",
+                                             "value": "{} errors in last {} {}".format(qtd, str(quantity),
+                                                                                       unit), "short": True},
+                                            {"title": "Error Message", "value": error, "short": False},
+                                            {"title": "Job ID", "value": job_id, "short": True}],
+                                 "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}, {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+            callback(alert)
     else:
-        callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, 0, str(quantity), unit, link))
+        alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(0, str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}, {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+        callback(alert)
 
 
 def add_company(company_id, quantity, unit, callback, status_code=400, error_message=False):
