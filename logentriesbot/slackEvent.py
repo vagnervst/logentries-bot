@@ -66,13 +66,18 @@ class SlackEvent(object):
 
     def answer(self, message):
         response = "<@" + message['user'] + "> " if message['user'] else ""
-        if 'fields' in message['message']:
+        if '#EA1212' in message['message']:
             response += "Alarm Fired!"
-            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, attachments=message['message'], as_user=True)
+        elif '#0059EA' in message['message']:
+            response += "Alarm Set!"
+        elif '#0BE039' in message['message']:
+            response += "Alarm Removed!"
         else:
             response += message['message']
             self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
 
+        self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response,
+                                          attachments=message['message'], as_user=True)
     def handle_event(self, command, bot):
         if command.parameters:
             print("Parameters used: " + command.join_parameters())
