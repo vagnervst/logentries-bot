@@ -36,10 +36,16 @@ def check_messages(job_id, company_id, quantity, unit, callback, status_code=400
                                                                                        unit), "short": True},
                                             {"title": "Error Message", "value": error, "short": False},
                                             {"title": "Job ID", "value": job_id, "short": True}],
-                                 "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}, {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+                                 "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
+                                             {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
             callback(alert)
     else:
-        alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(0, str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}, {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+        alert = json.dumps([{"color": "#EA1212",
+                             "fields": [{"title": "Company", "value": company_id, "short": True},
+                                        {"title": "Status", "value": "{} errors in last {} {}".format(0, str(quantity), unit), "short": True},
+                                        {"title": "Job ID", "value": job_id, "short": True}],
+                             "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
+                                         {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
         callback(alert)
 
 
