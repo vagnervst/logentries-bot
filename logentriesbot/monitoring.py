@@ -58,8 +58,12 @@ def add_company(company_id, quantity, unit, callback, status_code=400, error_mes
     else:
         scheduler.add_job(check, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
 
-    callback("[job_id: *{}*] Watching company *{}*!".format(job_id, company_id))
-    callback("Use `@logentries_bot remove --job_id \"{}\"` to stop monitoring company *{}*".format(job_id, company_id))
+    alert = json.dumps([{"color": "#0059EA",
+                         "fields": [{"title": "Company", "value": company_id, "short": True},
+                                    {"title": "Job ID", "value": job_id, "short": True}],
+
+                         "actions": [{"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+    callback(alert)
 
 
 def remove_company(job_id, callback):
