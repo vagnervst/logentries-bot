@@ -79,7 +79,10 @@ def remove_company(job_id, callback):
     except:
         callback("Error! Check job_id and try again!")
 
-    callback("[job_id: *{}*] Stopped monitoring company *{}*!".format(job_id, company_id))
+    alert = json.dumps([{"color": "#0BE039",
+                         "fields": [{"title": "Job ID", "value": job_id, "short": True},
+                                    {"title": "Company", "value": company_id, "short": True}]}])
+    callback(alert)
 
 
 def get_jobs(callback):
