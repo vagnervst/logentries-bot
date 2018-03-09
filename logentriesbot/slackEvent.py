@@ -66,6 +66,7 @@ class SlackEvent(object):
         self.answer(message)
 
     def answer(self, message):
+        posted = False
         response = "<@" + message['user'] + "> " if message['user'] else ""
         if '#EA1212' in message['message']:
             response += "Alarm Fired!"
@@ -76,9 +77,11 @@ class SlackEvent(object):
         else:
             response += message['message']
             self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
+            posted = True
 
-        self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response,
-                                          attachments=message['message'], as_user=True)
+        if not posted:
+            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response,
+                                              attachments=message['message'], as_user=True)
     def handle_event(self, command, bot):
         if command.parameters:
             print("Parameters used: " + command.join_parameters())
