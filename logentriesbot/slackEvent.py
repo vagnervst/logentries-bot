@@ -33,28 +33,29 @@ class SlackEvent(object):
                 self.parse_event(event)
 
     def parse_event(self, event):
-        if event.get('type') == 'message' and "text" in event:
-            mentioned_bot_id = event['text'].split(' ')[0]
-            attached_bot = self.client.get_attached_bot(mentioned_bot_id)
+        if event.get('subtype') != 'group_join': # stop automention
+            if event.get('type') == 'message' and "text" in event:
+                mentioned_bot_id = event['text'].split(' ')[0]
+                attached_bot = self.client.get_attached_bot(mentioned_bot_id)
 
-            if attached_bot is not None:
-                commandFromUser = event['text'].split(mentioned_bot_id)[1]
-                commandFromUser = commandFromUser.strip()
-                command = attached_bot.get_built_command(commandFromUser)
+                if attached_bot is not None:
+                    commandFromUser = event['text'].split(mentioned_bot_id)[1]
+                    commandFromUser = commandFromUser.strip()
+                    command = attached_bot.get_built_command(commandFromUser)
 
-                if command.async:
-                    self.event = event
-                    self.handle_event_async(command, attached_bot, self.async_handler)
-                else:
-                    event_response = self.handle_event(command, attached_bot)
-                    message = {
-                        'message': event_response,
-                        'channel': event['channel'],
-                        'user': event['user']
-                    }
+                    if command.async:
+                        self.event = event
+                        self.handle_event_async(command, attached_bot, self.async_handler)
+                    else:
+                        event_response = self.handle_event(command, attached_bot)
+                        message = {
+                            'message': event_response,
+                            'channel': event['channel'],
+                            'user': event['user']
+                        }
 
-                    print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
-                    self.answer(message)
+                        print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
+                        self.answer(message)
 
     def async_handler(self, response):
         message = {
