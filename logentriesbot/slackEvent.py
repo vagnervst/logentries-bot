@@ -10,7 +10,7 @@ class SlackEvent(object):
     def __init__(self):
         self.client = SlackConnection(config('SLACK_API_TOKEN'))
 
-        logWatcher = LogWatcher('supportbot', self.client)
+        logWatcher = LogWatcher('metalknight', self.client)
 
         self.client.attach_bot(logWatcher)
 
@@ -31,8 +31,17 @@ class SlackEvent(object):
             for event in events:
                 self.parse_event(event)
 
+    def should_handle(self, event):
+        if (event.get('subtype') != 'group_join'
+                and event.get('type') == 'message'
+                and "text" in event):
+                return True
+
+        return False
+
     def parse_event(self, event):
-        if event.get('type') == 'message' and "text" in event:
+        if self.should_handle(event):
+
             mentioned_bot_id = event['text'].split(' ')[0]
             attached_bot = self.client.get_attached_bot(mentioned_bot_id)
 
@@ -43,30 +52,64 @@ class SlackEvent(object):
 
                 if command.async:
                     self.event = event
-                    self.handle_event_async(command, attached_bot, self.async_handler)
+                    self.handle_event_async(
+                        command, attached_bot, self.async_handler
+                    )
                 else:
-                    event_response = self.handle_event(command, attached_bot)
+                    event_response = self.handle_event(
+                        command, attached_bot
+                    )
+
                     message = {
                         'message': event_response,
-                        'channel': event['channel'],
+                        'channel': event['user'],
                         'user': event['user']
                     }
 
-                    print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
+                    print(
+                        "Received command: " + command.name +
+                        " in channel: " + event.get('channel') +
+                        " from user: " + event.get('user')
+                    )
+
                     self.answer(message)
 
     def async_handler(self, response):
         message = {
             'message': response,
-            'channel': self.event['channel'],
+            'channel': self.event['user'],
             'user': self.event['user']
         }
         self.answer(message)
 
     def answer(self, message):
+        posted = False
         response = "<@" + message['user'] + "> " if message['user'] else ""
-        response += message['message']
-        self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
+        if '#EA1212' in message['message']:
+            response += "Alarm Fired!"
+        elif '#0059EA' in message['message']:
+            response += "Alarm Set!"
+        elif '#0BE039' in message['message']:
+            response += "Alarm Removed!"
+        else:
+            response += message['message']
+            self.client.slack_client.api_call(
+                "chat.postMessage",
+                channel=message['channel'],
+                text=response,
+                as_user=True
+            )
+
+            posted = True
+
+        if not posted:
+            self.client.slack_client.api_call(
+                "chat.postMessage",
+                channel=message['channel'],
+                text=response,
+                attachments=message['message'],
+                as_user=True
+            )
 
     def handle_event(self, command, bot):
         if command.parameters:
