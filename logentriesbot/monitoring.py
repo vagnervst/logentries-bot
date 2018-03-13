@@ -1,4 +1,5 @@
 import ast
+import json
 from apscheduler.schedulers.background import BackgroundScheduler
 from logentriesbot.client.logentries import LogentriesConnection, Query
 from logentriesbot.client.logentrieshelper import LogentriesHelper, Time
@@ -21,7 +22,10 @@ def check(job_id, company_id, quantity, unit, callback, status_code=400):
     errors = get_how_many(company_id, from_time, status_code)
 
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
-    callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, errors["errors"], str(quantity), unit, link))
+
+    alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(errors['errors'], str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}]}])
+
+    callback(alert)
 
 
 def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
@@ -31,9 +35,26 @@ def check_messages(job_id, company_id, quantity, unit, callback, status_code=400
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
     if len(errors["errors"]) > 0:
         for e in errors["errors"]:
-            callback("[job_id: *{}*] Company *{}* had *{}* errors \"{}\" in last {} {}! <{}|Run it!>".format(job_id, company_id, e['quantity'], e['message'], str(quantity), unit, link))
+            error = e['message']
+            qtd = e['quantity']
+            alert = json.dumps([{"color": "#EA1212",
+                                 "fields": [{"title": "Company", "value": company_id, "short": True},
+                                            {"title": "Status",
+                                             "value": "{} errors in last {} {}".format(qtd, str(quantity),
+                                                                                       unit), "short": True},
+                                            {"title": "Error Message", "value": error, "short": False},
+                                            {"title": "Job ID", "value": job_id, "short": True}],
+                                 "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
+                                             {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+            callback(alert)
     else:
-        callback("[job_id: *{}*] Company *{}* had *{}* errors in last {} {}! <{}|Run it!>".format(job_id, company_id, 0, str(quantity), unit, link))
+        alert = json.dumps([{"color": "#EA1212",
+                             "fields": [{"title": "Company", "value": company_id, "short": True},
+                                        {"title": "Status", "value": "{} errors in last {} {}".format(0, str(quantity), unit), "short": True},
+                                        {"title": "Job ID", "value": job_id, "short": True}],
+                             "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
+                                         {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+        callback(alert)
 
 
 def add_company(company_id, quantity, unit, callback, status_code=400, error_message=False):
@@ -51,8 +72,12 @@ def add_company(company_id, quantity, unit, callback, status_code=400, error_mes
     else:
         scheduler.add_job(check, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
 
-    callback("[job_id: *{}*] Watching company *{}*!".format(job_id, company_id))
-    callback("Use `@logentries_bot remove --job_id \"{}\"` to stop monitoring company *{}*".format(job_id, company_id))
+    alert = json.dumps([{"color": "#0059EA",
+                         "fields": [{"title": "Company", "value": company_id, "short": True},
+                                    {"title": "Job ID", "value": job_id, "short": True}],
+
+                         "actions": [{"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+    callback(alert)
 
 
 def remove_company(job_id, callback):
@@ -68,7 +93,10 @@ def remove_company(job_id, callback):
     except:
         callback("Error! Check job_id and try again!")
 
-    callback("[job_id: *{}*] Stopped monitoring company *{}*!".format(job_id, company_id))
+    alert = json.dumps([{"color": "#0BE039",
+                         "fields": [{"title": "Job ID", "value": job_id, "short": True},
+                                    {"title": "Company", "value": company_id, "short": True}]}])
+    callback(alert)
 
 
 def get_how_many(company_id, from_time, status_code=400):
