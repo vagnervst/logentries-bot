@@ -1,4 +1,3 @@
-import json
 import time
 from prettyconf import config
 
@@ -11,7 +10,7 @@ class SlackEvent(object):
     def __init__(self):
         self.client = SlackConnection(config('SLACK_API_TOKEN'))
 
-        logWatcher = LogWatcher('supportbot', self.client)
+        logWatcher = LogWatcher('metalknight', self.client)
 
         self.client.attach_bot(logWatcher)
 
@@ -32,30 +31,48 @@ class SlackEvent(object):
             for event in events:
                 self.parse_event(event)
 
+    def should_handle(self, event):
+        if (event.get('subtype') != 'group_join'
+                and event.get('type') == 'message'
+                and "text" in event):
+                return True
+
+        return False
+
     def parse_event(self, event):
-        if event.get('subtype') != 'group_join': # stop automention
-            if event.get('type') == 'message' and "text" in event:
-                mentioned_bot_id = event['text'].split(' ')[0]
-                attached_bot = self.client.get_attached_bot(mentioned_bot_id)
+        if self.should_handle(event):
 
-                if attached_bot is not None:
-                    commandFromUser = event['text'].split(mentioned_bot_id)[1]
-                    commandFromUser = commandFromUser.strip()
-                    command = attached_bot.get_built_command(commandFromUser)
+            mentioned_bot_id = event['text'].split(' ')[0]
+            attached_bot = self.client.get_attached_bot(mentioned_bot_id)
 
-                    if command.async:
-                        self.event = event
-                        self.handle_event_async(command, attached_bot, self.async_handler)
-                    else:
-                        event_response = self.handle_event(command, attached_bot)
-                        message = {
-                            'message': event_response,
-                            'channel': event['user'],
-                            'user': event['user']
-                        }
+            if attached_bot is not None:
+                commandFromUser = event['text'].split(mentioned_bot_id)[1]
+                commandFromUser = commandFromUser.strip()
+                command = attached_bot.get_built_command(commandFromUser)
 
-                        print("Received command: " + command.name + " in channel: " + event.get('channel') + " from user: " + event.get('user'))
-                        self.answer(message)
+                if command.async:
+                    self.event = event
+                    self.handle_event_async(
+                        command, attached_bot, self.async_handler
+                    )
+                else:
+                    event_response = self.handle_event(
+                        command, attached_bot
+                    )
+
+                    message = {
+                        'message': event_response,
+                        'channel': event['user'],
+                        'user': event['user']
+                    }
+
+                    print(
+                        "Received command: " + command.name +
+                        " in channel: " + event.get('channel') +
+                        " from user: " + event.get('user')
+                    )
+
+                    self.answer(message)
 
     def async_handler(self, response):
         message = {
@@ -76,12 +93,24 @@ class SlackEvent(object):
             response += "Alarm Removed!"
         else:
             response += message['message']
-            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response, as_user=True)
+            self.client.slack_client.api_call(
+                "chat.postMessage",
+                channel=message['channel'],
+                text=response,
+                as_user=True
+            )
+
             posted = True
 
         if not posted:
-            self.client.slack_client.api_call("chat.postMessage", channel=message['channel'], text=response,
-                                              attachments=message['message'], as_user=True)
+            self.client.slack_client.api_call(
+                "chat.postMessage",
+                channel=message['channel'],
+                text=response,
+                attachments=message['message'],
+                as_user=True
+            )
+
     def handle_event(self, command, bot):
         if command.parameters:
             print("Parameters used: " + command.join_parameters())
