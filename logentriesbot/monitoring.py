@@ -15,7 +15,7 @@ def check(job_id, company_id, quantity, unit, callback, status_code=400):
 
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
 
-    alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(errors['errors'], str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}, {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
+    alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(errors['errors'], str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}]}])
 
     callback(alert)
 
