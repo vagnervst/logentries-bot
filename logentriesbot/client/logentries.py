@@ -44,6 +44,9 @@ class LogentriesConnection(object):
             else:
                 return json.dumps(response.json(), indent=4)
 
+    def query(self, query):
+        pass
+
 
 class Query(object):
 

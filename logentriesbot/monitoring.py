@@ -7,7 +7,6 @@ import uuid
 from urllib.parse import quote
 from datetime import datetime
 from prettyconf import config
-import json
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -68,15 +67,50 @@ def add_company(company_id, quantity, unit, callback, status_code=400, error_mes
     error_message = ast.literal_eval(error_message)
 
     if error_message:
-        scheduler.add_job(check_messages, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
+        scheduler.add_job(
+            check_messages,
+            'interval',
+            [job_id, company_id, quantity, unit, callback, status_code],
+            id=job_id,
+            **kwargs,
+            name=company_id
+        )
     else:
-        scheduler.add_job(check, 'interval', [job_id, company_id, quantity, unit, callback, status_code], id=job_id, **kwargs, name=company_id)
+        scheduler.add_job(
+            check,
+            'interval',
+            [job_id, company_id, quantity, unit, callback, status_code],
+            id=job_id,
+            **kwargs,
+            name=company_id
+        )
 
-    alert = json.dumps([{"color": "#0059EA",
-                         "fields": [{"title": "Company", "value": company_id, "short": True},
-                                    {"title": "Job ID", "value": job_id, "short": True}],
+    alert = json.dumps([
+        {
+            "color": "#0059EA",
+            "fields": [
+                {
+                    "title": "Company",
+                    "value": company_id,
+                    "short": True
+                },
+                {
+                    "title": "Job ID",
+                    "value": job_id,
+                    "short": True
+                }
+            ],
+            "actions": [
+                {
+                    "name": "Stop",
+                    "text": "Stop",
+                    "type": "button",
+                    "value": "Stop"
+                }
+            ]
+        }
+    ])
 
-                         "actions": [{"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
     callback(alert)
 
 
@@ -90,12 +124,27 @@ def remove_company(job_id, callback):
     try:
         scheduler.pause_job(job_id=job_id)
         scheduler.remove_job(job_id=job_id)
-    except:
+    except Exception:
         callback("Error! Check job_id and try again!")
 
-    alert = json.dumps([{"color": "#0BE039",
-                         "fields": [{"title": "Job ID", "value": job_id, "short": True},
-                                    {"title": "Company", "value": company_id, "short": True}]}])
+    alert = json.dumps([
+        {
+            "color": "#0BE039",
+            "fields": [
+                {
+                    "title": "Job ID",
+                    "value": job_id,
+                    "short": True
+                },
+                {
+                    "title": "Company",
+                    "value": company_id,
+                    "short": True
+                }
+            ]
+        }
+    ])
+
     callback(alert)
 
 
