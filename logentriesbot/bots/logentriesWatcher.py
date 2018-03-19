@@ -7,6 +7,7 @@ from prettyconf import config
 
 
 class LogWatcher(Bot):
+
     def __init__(self, bot_name, slack_connection):
         Bot.__init__(self, bot_name, slack_connection)
 
@@ -33,9 +34,6 @@ class LogWatcher(Bot):
                 "fn": self.get_jobs,
                 "async": True
             },
-            "jump": {
-                "fn": self.jump
-            },
             "query": {
                 "fn": self.query
             },
@@ -43,9 +41,6 @@ class LogWatcher(Bot):
                 "fn": self.help
             }
         }
-
-    def jump(self, params=None):
-        return "Kris Kross will make you jump jump"
 
     def add(self, params, callback):
         params_spec = self.commands["add"]["params"]
@@ -62,13 +57,10 @@ class LogWatcher(Bot):
         status_code = parsed_params["status_code"]
         error_message = parsed_params["error_message"]
 
-        try:
-            return add_company(
-                company_id, quantity, unit,
-                callback, status_code, error_message
-            )
-        except Exception:
-            print("Missing one or more parameters! Check and try again!")
+        return add_company(
+            company_id, quantity, unit,
+            callback, status_code, error_message
+        )
 
     def remove(self, params, callback):
         params_spec = self.commands["remove"]["params"]

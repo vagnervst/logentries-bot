@@ -1,12 +1,15 @@
 import ast
 import json
-from apscheduler.schedulers.background import BackgroundScheduler
-from logentriesbot.client.logentries import LogentriesConnection, Query
-from logentriesbot.client.logentrieshelper import LogentriesHelper, Time
 import uuid
 from urllib.parse import quote
 from datetime import datetime
 from prettyconf import config
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from logentriesbot.client.logentries import LogentriesConnection, Query
+from logentriesbot.client.logentrieshelper import LogentriesHelper, Time
+from logentriesbot.helpers import implode
+from logentriesbot.client.slack import SlackAttachment
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -22,38 +25,56 @@ def check(job_id, company_id, quantity, unit, callback, status_code=400):
 
     link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
 
-    alert = json.dumps([{"color": "#EA1212", "fields": [{"title": "Company", "value": company_id, "short": True},  {"title": "Status", "value": "{} errors in last {} {}".format(errors['errors'], str(quantity), unit), "short": True}, {"title": "Job ID", "value": job_id, "short": True}], "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link}]}])
+    report = "{} errors in last {} {}".format(
+        errors['errors'], str(quantity), unit
+    )
 
-    callback(alert)
+    attachment = SlackAttachment("#EA1212")\
+        .field(title="Company", value=company_id, short=True)\
+        .field(title="Status", value=report, short=True)\
+        .field(title="Job ID", value=job_id, short=True)\
+        .action(name="Run It", text="Run It!", type="button", url=link)
+
+    callback(json.dumps([
+        attachment.build()
+    ]))
 
 
 def check_messages(job_id, company_id, quantity, unit, callback, status_code=400):
-    from_time = Time.parse(quantity, unit).get_interval_bound(quantity, unit)
+    parsed_query_interval = Time.parse(quantity, unit)
+    from_time = Time.get_interval_as_timestamp(
+        datetime.now(), parsed_query_interval
+    )
+
     errors = get_how_many_each_error(company_id, from_time, status_code)
 
-    link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(quote(errors["query"]))
-    if len(errors["errors"]) > 0:
-        for e in errors["errors"]:
-            error = e['message']
-            qtd = e['quantity']
-            alert = json.dumps([{"color": "#EA1212",
-                                 "fields": [{"title": "Company", "value": company_id, "short": True},
-                                            {"title": "Status",
-                                             "value": "{} errors in last {} {}".format(qtd, str(quantity),
-                                                                                       unit), "short": True},
-                                            {"title": "Error Message", "value": error, "short": False},
-                                            {"title": "Job ID", "value": job_id, "short": True}],
-                                 "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
-                                             {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
-            callback(alert)
-    else:
-        alert = json.dumps([{"color": "#EA1212",
-                             "fields": [{"title": "Company", "value": company_id, "short": True},
-                                        {"title": "Status", "value": "{} errors in last {} {}".format(0, str(quantity), unit), "short": True},
-                                        {"title": "Job ID", "value": job_id, "short": True}],
-                             "actions": [{"name": "Run It", "text": "Run It!", "type": "button", "url": link},
-                                         {"name": "Stop", "text": "Stop", "type": "button", "value": "Stop"}]}])
-        callback(alert)
+    link = "https://logentries.com/app/73cd17bb#/search/logs/?log_q={}".format(
+        quote(errors["query"])
+    )
+
+    report = "{} failed requests in the last {} {}".format(
+        errors['errors']['count'],
+        str(quantity),
+        unit
+    )
+
+    attachment = SlackAttachment("#EA1212")\
+        .field(title="Company", value=company_id, short=True)\
+        .field(title="Status", value=report, short=True)\
+        .action(name="Run It", text="Run It!", type="button", url=link)
+
+    if errors['errors']['count'] > 0:
+        attachment.field(
+            title="Error Messages",
+            value=implode(', ', errors['errors']['messages']),
+            short=False
+        )
+
+    attachment.field(title="Job Id", value=job_id, short=True)
+
+    callback(json.dumps([
+        attachment.build()
+    ]))
 
 
 def add_company(company_id, quantity, unit, callback, status_code=400, error_message=False):
@@ -64,54 +85,26 @@ def add_company(company_id, quantity, unit, callback, status_code=400, error_mes
 
     job_id = str(uuid.uuid4())[:8]
 
-    error_message = ast.literal_eval(error_message)
+    error_message = True if error_message.lower() == "true" else False
 
-    if error_message:
-        scheduler.add_job(
-            check_messages,
-            'interval',
-            [job_id, company_id, quantity, unit, callback, status_code],
-            id=job_id,
-            **kwargs,
-            name=company_id
-        )
-    else:
-        scheduler.add_job(
-            check,
-            'interval',
-            [job_id, company_id, quantity, unit, callback, status_code],
-            id=job_id,
-            **kwargs,
-            name=company_id
-        )
+    alert_function = check_messages if error_message is True else check
 
-    alert = json.dumps([
-        {
-            "color": "#0059EA",
-            "fields": [
-                {
-                    "title": "Company",
-                    "value": company_id,
-                    "short": True
-                },
-                {
-                    "title": "Job ID",
-                    "value": job_id,
-                    "short": True
-                }
-            ],
-            "actions": [
-                {
-                    "name": "Stop",
-                    "text": "Stop",
-                    "type": "button",
-                    "value": "Stop"
-                }
-            ]
-        }
-    ])
+    scheduler.add_job(
+        alert_function,
+        'interval',
+        [job_id, company_id, quantity, unit, callback, status_code],
+        id=job_id,
+        **kwargs,
+        name=company_id
+    )
 
-    callback(alert)
+    attachment = SlackAttachment("#0059EA")\
+        .field(title="Company", value=company_id, short=True)\
+        .field(title="Job ID", value=job_id, short=True)
+
+    callback(json.dumps([
+        attachment.build()
+    ]))
 
 
 def remove_company(job_id, callback):
@@ -127,33 +120,16 @@ def remove_company(job_id, callback):
     except Exception:
         callback("Error! Check job_id and try again!")
 
-    alert = json.dumps([
-        {
-            "color": "#0BE039",
-            "fields": [
-                {
-                    "title": "Job ID",
-                    "value": job_id,
-                    "short": True
-                },
-                {
-                    "title": "Company",
-                    "value": company_id,
-                    "short": True
-                }
-            ]
-        }
-    ])
+    attachment = SlackAttachment("#0BE039")\
+        .field(title="Job ID", value=job_id, short=True)\
+        .field(title="Company", value=company_id, short=True)
 
-    callback(alert)
+    callback(json.dumps([
+        attachment.build()
+    ]))
 
 
 def get_how_many(company_id, from_time, status_code=400):
-    statement = "where(statusCode={status_code} \
-    AND _id={id} \
-    AND /POST/) \
-    groupby(_id) \
-    calculate(count)".format(status_code=status_code, id=company_id)
 
     to_time = Time.get_timestamp(
         datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S")
@@ -164,15 +140,18 @@ def get_how_many(company_id, from_time, status_code=400):
         LogentriesHelper.get_all_live_environment()
     )
 
-    query = Query(statement, {
-            'from': from_time, 'to': to_time
-        }, logs)
+    query = Query()\
+        .where("statusCode={}".format(status_code))\
+        .and_("id={}".format(company_id))\
+        .and_("/POST/")\
+        .interval(from_time, to_time)\
+        .groupby("_id")\
+        .calculate("count")\
+        .logs(logs)
 
     response = LogentriesConnection(
         config('LOGENTRIES_API_KEY')
-    ).post("/query/logs", query.build())
-
-    response = json.loads(response)
+    ).query(query.build())
 
     errors = 0
     if len(response['statistics']['groups']) > 0:
@@ -180,17 +159,13 @@ def get_how_many(company_id, from_time, status_code=400):
 
     result = {
         "errors": errors,
-        "query": statement
+        "query": query.to_string()
     }
 
     return result
 
 
 def get_how_many_each_error(company_id, from_time, status_code=400):
-    statement = "where(statusCode={status_code} \
-     AND _id={id} \
-     AND /POST/)".format(status_code=status_code, id=company_id)
-
     to_time = Time.get_timestamp(
         datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S")
     )
@@ -200,39 +175,37 @@ def get_how_many_each_error(company_id, from_time, status_code=400):
         LogentriesHelper.get_all_live_environment()
     )
 
-    query = Query(statement, {
-        'from': from_time,
-        'to': to_time
-    }, logs)
+    query = Query()\
+        .where('statusCode={}'.format(status_code))\
+        .and_('_id={}'.format(company_id))\
+        .and_('/POST/')\
+        .interval(from_time, to_time)\
+        .logs(logs)
 
     client = LogentriesConnection(config('LOGENTRIES_API_KEY'))
-    response = client.post("/query/logs", query.build())
+    response = client.query(query.build())
 
-    response = json.loads(response)
+    latest_errors_summary = {
+        'count': 0,
+        'messages': []
+    }
 
-    errors = []
+    for failed_response in response['events']:
+        latest_errors_summary['count'] += 1
 
-    for event in response['events']:
-        message = event['message'][1:]
-        message = ast.literal_eval(message)
+        response_body = failed_response['message'][1:]
+        response_body = ast.literal_eval(response_body)
 
-        err_msg = ", "
-        errors_messages = []
-        for error in message['body']['errors']:
-            errors_messages.append(error['message'])
-        err_msg = err_msg.join(errors_messages)
+        for error in response_body['body']['errors']:
+            latest_errors_summary['messages'].append(error['message'])
 
-        error_added = False
-        for error in errors:
-            if error['message'] == err_msg:
-                error['quantity'] += 1
-                error_added = True
-        if not error_added:
-            errors.append({'message': err_msg, 'quantity': 1})
+    latest_errors_summary['messages'] = list(
+        set(latest_errors_summary['messages'])
+    )
 
     return {
-        "query": statement,
-        "errors": errors
+        'query': query.to_string(),
+        'errors': latest_errors_summary
     }
 
 

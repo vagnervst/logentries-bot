@@ -27,7 +27,7 @@ class LogentriesConnection(object):
         response = requests.get(url, headers=self._build_headers())
         return response
 
-    def post(self, path, query):
+    def _post(self, path, query):
         headers = self._build_headers()
         path = "{0}{1}".format(self.API_URL, path)
 
@@ -45,26 +45,82 @@ class LogentriesConnection(object):
                 return json.dumps(response.json(), indent=4)
 
     def query(self, query):
-        pass
+        response = self._post("/query/logs", query)
+        return json.loads(response)
 
 
 class Query(object):
 
-    def __init__(self, statement, range, logs):
-        self.logs = logs
-        self.statement = statement
-        self.from_timestamp = range['from']
-        self.to_timestamp = range['to']
+    def __init__(self):
+        self._logs = None
+        self._where = None
+        self._groupby = None
+        self._calculate = None
+        self._interval = None
+
+    def where(self, query_string):
+        if self._where is not None:
+            raise Exception('duplicate definition of \'where\' clause')
+
+        self._where = query_string
+        return self
+
+    def and_(self, query_string):
+        if self._where is None:
+            raise Exception('\'where\' clause not declared')
+
+        self._where += " AND {} ".format(query_string)
+        return self
+
+    def or_(self, query_string):
+        if self._where is None:
+            raise Exception('\'where\' clause not declared')
+
+        self._where += " OR {} ".format(query_string)
+        return self
+
+    def groupby(self, field_name):
+        if self._groupby is not None:
+            raise Exception('duplicate definition of \'groupby\' clause')
+
+        self._groupby = "groupby({})".format(field_name)
+        return self
+
+    def calculate(self, operation):
+        if self._calculate is not None:
+            raise Exception('duplicate definition of \'calculate\' clause')
+
+        self._calculate = "calculate({})".format(operation)
+        return self
+
+    def interval(self, from_timestamp, to_timestamp):
+        self._interval = {
+            "from": from_timestamp,
+            "to": to_timestamp
+        }
+        return self
+
+    def logs(self, log_ids):
+        self._logs = log_ids
+        return self
+
+    def to_string(self):
+        where = self._where or ""
+        groupby = self._groupby or ""
+        calculate = self._calculate or ""
+
+        stringified = "where({}) {} {}".format(
+            where, groupby, calculate
+        )
+
+        return stringified.strip()
 
     def build(self):
         query = {
-            "logs": self.logs,
+            "logs": self._logs,
             "leql": {
-                "during": {
-                    "from": self.from_timestamp,
-                    "to": self.to_timestamp
-                },
-                "statement": self.statement
+                "during": self._interval,
+                "statement": self.to_string()
             }
         }
 
