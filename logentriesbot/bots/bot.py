@@ -2,13 +2,11 @@ from logentriesbot.command import Command
 
 
 class Bot(object):
+
     def __init__(self, bot_name, slack_connection):
         self.name = bot_name
         self.id = slack_connection.get_bot_id(bot_name)
         self.commands = {}
-
-    def pre_command_handle(self, command):
-        pass
 
     def handle_command(self, command):
         response = "Sorry I don't understand the command: " + command.name
@@ -26,7 +24,11 @@ class Bot(object):
         command_spec = self.get_command(command.name)
         if command_spec is not None:
             command_function = command_spec['fn']
-            response = command_function(command.parameters, callback)
+
+            try:
+                response = command_function(command.parameters, callback)
+            except Exception as e:
+                response = str(e)
 
         return response
 

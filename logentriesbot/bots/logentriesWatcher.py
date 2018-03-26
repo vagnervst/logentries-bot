@@ -1,78 +1,101 @@
 from logentriesbot.bots.bot import Bot
-from logentriesbot.client.logentries import post_query, get_timestamp
+from logentriesbot.bots.parametersParser import ParametersParser
+from logentriesbot.client.logentries import LogentriesConnection, Query
+from logentriesbot.client.logentrieshelper import LogentriesHelper, Time
 from logentriesbot.monitoring import add_company, remove_company, get_jobs
+from prettyconf import config
 
 
 class LogWatcher(Bot):
+
     def __init__(self, bot_name, slack_connection):
         Bot.__init__(self, bot_name, slack_connection)
 
         self.commands = {
             "add": {
                 "fn": self.add,
-                "required_params": ["company_id", "status_code", "error_message", "quantity", "unit"],
+                "params": [
+                    {"name": "company_id", "required": True},
+                    {"name": "status_code", "required": True},
+                    {"name": "error_message", "required": True},
+                    {"name": "quantity", "required": True},
+                    {"name": "unit", "required": True}
+                ],
                 "async": True
             },
             "remove": {
                 "fn": self.remove,
-                "required_params": ["job_id"],
+                "params": [
+                    {"name": "job_id", "required": True}
+                ],
                 "async": True
             },
             "get_jobs": {
                 "fn": self.get_jobs,
                 "async": True
             },
-            "jump": {
-                "fn": self.jump
-            },
-            "exec": {
-                "fn": self.exec
+            "query": {
+                "fn": self.query
             },
             "help": {
                 "fn": self.help
             }
         }
 
-    def jump(self, params=None):
-        return "Kris Kross will make you jump jump"
-
     def add(self, params, callback):
-        for c in params:
-            if c['name'] == 'company_id':
-                company_id = c['value']
-            elif c['name'] == 'status_code':
-                status_code = int(c['value'])
-            elif c['name'] == 'error_message':
-                error_message = c['value']
-            elif c['name'] == 'quantity':
-                quantity = int(c['value'])
-            elif c['name'] == 'unit':
-                unit = c['value']
+        params_spec = self.commands["add"]["params"]
+
         try:
-            return add_company(company_id, quantity, unit, callback, status_code, error_message)
-        except:
-            print("Missing one or more parameters! Check and try again!")
+            parsed_params = ParametersParser(params_spec).parse(params)
+        except Exception as e:
+            callback(str(e))
+            return e
+
+        company_id = parsed_params["company_id"]
+        quantity = int(parsed_params["quantity"])
+        unit = parsed_params["unit"]
+        status_code = parsed_params["status_code"]
+        error_message = parsed_params["error_message"]
+
+        return add_company(
+            company_id, quantity, unit,
+            callback, status_code, error_message
+        )
 
     def remove(self, params, callback):
-        for c in params:
-            if c['name'] == "job_id":
-                job_id = c['value']
+        params_spec = self.commands["remove"]["params"]
+
+        try:
+            parsed_params = ParametersParser(params_spec).parse(params)
+        except Exception as e:
+            callback(str(e))
+            return e
+
+        job_id = parsed_params["job_id"]
 
         return remove_company(job_id, callback)
 
     def get_jobs(self, params, callback):
         return get_jobs(callback)
 
-    def exec(self, params):
+    def query(self, params):
         for c in params:
             if c['name'] == 'query':
                 statement = c['value']
             elif c['name'] == 'from':
-                from_time = get_timestamp(c['value'])
+                from_time = Time.get_timestamp(c['value'])
             elif c['name'] == 'to':
-                to_time = get_timestamp(c['value'])
+                to_time = Time.get_timestamp(c['value'])
 
-        return post_query(statement, from_time, to_time)
+        logs = LogentriesHelper.get_all_test_environment()
+        + LogentriesHelper.get_all_live_environment()
+
+        query = Query(statement, {
+            'from': from_time, 'to': to_time
+        }, logs)
+
+        client = LogentriesConnection(config('LOGENTRIES_API_KEY'))
+        return client.post('/query/logs', query.build())
 
     def help(self, params=None):
         response = "Currently I support the following commands:\r\n"

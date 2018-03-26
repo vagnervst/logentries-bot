@@ -1,119 +1,133 @@
-import ast
 import json
-from datetime import datetime
-from datetime import timedelta
-from prettyconf import config
 import requests
+from datetime import datetime
+
+
+class LogentriesConnection(object):
+    API_URL = "https://rest.logentries.com"
+
+    def __init__(self, key):
+        self.key = key
+
+    def get_logset_logs(self, logset_id):
+        path = "/management/logsets/{0}".format(logset_id)
+        response = self.get(path).json()
+
+        logs = []
+        for log in response['logset']['logs_info']:
+            logs.append(log['id'])
+
+        return logs
+
+    def _build_headers(self):
+        return {'x-api-key': self.key}
+
+    def get(self, path):
+        url = "{0}{1}".format(self.API_URL, path)
+        response = requests.get(url, headers=self._build_headers())
+        return response
+
+    def _post(self, path, query):
+        headers = self._build_headers()
+        path = "{0}{1}".format(self.API_URL, path)
+
+        response = requests.post(
+            path,
+            json=query,
+            headers=headers
+        )
+
+        while response.status_code >= 200:
+            if 'links' in response.json():
+                continue_url = response.json()['links'][0]['href']
+                response = requests.get(continue_url, headers=headers)
+            else:
+                return json.dumps(response.json(), indent=4)
+
+    def query(self, query):
+        response = self._post("/query/logs", query)
+        return json.loads(response)
+
+
+class Query(object):
+
+    def __init__(self):
+        self._logs = None
+        self._where = None
+        self._groupby = None
+        self._calculate = None
+        self._interval = None
+
+    def where(self, query_string):
+        if self._where is not None:
+            raise Exception('duplicate definition of \'where\' clause')
+
+        self._where = query_string
+        return self
+
+    def and_(self, query_string):
+        if self._where is None:
+            raise Exception('\'where\' clause not declared')
+
+        self._where += " AND {} ".format(query_string)
+        return self
+
+    def or_(self, query_string):
+        if self._where is None:
+            raise Exception('\'where\' clause not declared')
+
+        self._where += " OR {} ".format(query_string)
+        return self
+
+    def groupby(self, field_name):
+        if self._groupby is not None:
+            raise Exception('duplicate definition of \'groupby\' clause')
+
+        self._groupby = "groupby({})".format(field_name)
+        return self
+
+    def calculate(self, operation):
+        if self._calculate is not None:
+            raise Exception('duplicate definition of \'calculate\' clause')
+
+        self._calculate = "calculate({})".format(operation)
+        return self
+
+    def interval(self, from_timestamp, to_timestamp):
+        self._interval = {
+            "from": from_timestamp,
+            "to": to_timestamp
+        }
+        return self
+
+    def logs(self, log_ids):
+        self._logs = log_ids
+        return self
+
+    def to_string(self):
+        where = self._where or ""
+        groupby = self._groupby or ""
+        calculate = self._calculate or ""
+
+        stringified = "where({}) {} {}".format(
+            where, groupby, calculate
+        )
+
+        return stringified.strip()
+
+    def build(self):
+        query = {
+            "logs": self._logs,
+            "leql": {
+                "during": self._interval,
+                "statement": self.to_string()
+            }
+        }
+
+        return query
 
 
 def get_timestamp(dt):
     dt_obj = datetime.strptime(dt, '%d/%m/%Y %H:%M:%S')
     millisec = int(dt_obj.timestamp() * 1000)
     return millisec
-
-
-def get_interval_bound(quantity, unit):
-    # unit must be: minutes, hours, days or weeks
-    kwargs = {unit: quantity}
-
-    to_time = datetime.now()
-    from_time = to_time - timedelta(**kwargs)
-
-    from_time = datetime.strftime(from_time, "%d/%m/%Y %H:%M:%S")
-    from_time = get_timestamp(from_time)
-
-    return from_time
-
-
-def get_all_live_environment():
-    all_live_environment_id = 'acd35399-1eb3-45f2-a79e-701b9733a50c'
-    all_live_environment_request = fetch_results("https://rest.logentries.com/management/logsets/{0}".format(all_live_environment_id)).json()
-    all_live_environment = []
-    for log in all_live_environment_request['logset']['logs_info']:
-        all_live_environment.append(log['id'])
-    return all_live_environment
-
-
-def get_all_test_environment():
-    all_test_environment_id = 'a908909c-9217-4feb-83b7-0ed4798fca3a'
-    all_test_environment_request = fetch_results("https://rest.logentries.com/management/logsets/{0}".format(all_test_environment_id)).json()
-    all_test_environment = []
-    for log in all_test_environment_request['logset']['logs_info']:
-        all_test_environment.append(log['id'])
-    return all_test_environment
-
-
-def get_how_many(company_id, from_time, status_code=400):
-    statement = "where(statusCode={status_code} AND _id={id} AND /POST/) groupby(_id) calculate(count)".format(status_code=status_code, id=company_id)
-    to_time = get_timestamp(datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S"))
-
-    response = post_query(statement, from_time, to_time)
-    response = json.loads(response)
-
-    errors = 0
-    if len(response['statistics']['groups']) > 0:
-        errors = response['statistics']['groups'][0][company_id]['count']
-
-    result = {
-        "errors": errors,
-        "query": statement
-    }
-
-    return result
-
-
-def get_how_many_each_error(company_id, from_time, status_code=400):
-    statement = "where(statusCode={status_code} AND _id={id} AND /POST/)".format(status_code=status_code, id=company_id)
-    to_time = get_timestamp(datetime.strftime(datetime.now(), "%d/%m/%Y %H:%M:%S"))
-
-    response = post_query(statement, from_time, to_time)
-    response = json.loads(response)
-
-    errors = []
-
-    for event in response['events']:
-        message = event['message'][1:]
-        message = ast.literal_eval(message)
-
-        err_msg = ", "
-        errors_messages = []
-        for error in message['body']['errors']:
-            errors_messages.append(error['message'])
-        err_msg = err_msg.join(errors_messages)
-
-        error_added = False
-        for error in errors:
-            if error['message'] == err_msg:
-                error['quantity'] += 1
-                error_added = True
-        if not error_added:
-            errors.append({'message': err_msg, 'quantity': 1})
-
-    return {
-        "query": statement,
-        "errors": errors
-    }
-
-
-def fetch_results(provided_url):
-    try:
-        response = requests.get(provided_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
-        return response
-    except requests.exceptions.RequestException as error:
-        print(error)
-
-
-def post_query(statement=None, from_time=None, to_time=None):
-    body = {"logs": get_all_test_environment() + get_all_live_environment(),
-            "leql": {"during": {"from": from_time, "to": to_time}, "statement": statement}}
-    uri = 'https://rest.logentries.com/query/logs/'
-    headers = {'x-api-key': config('LOGENTRIES_API_KEY')}
-
-    response = requests.post(uri, json=body, headers=headers)
-
-    while response.status_code >= 200:
-        if 'links' in response.json():
-            continue_url = response.json()['links'][0]['href']
-            response = requests.get(continue_url, headers={'x-api-key': config('LOGENTRIES_API_KEY')})
-        else:
-            return json.dumps(response.json(), indent=4)

@@ -33,3 +33,37 @@ class SlackConnection(object):
                 return bot
 
         return None
+
+
+class SlackAttachment(object):
+
+    def __init__(self, color_hex):
+        self._attachment = {
+            "color": color_hex,
+            "fields": [],
+            "actions": []
+        }
+
+    def field(self, **kwargs):
+        new_field = {
+            "title": kwargs["title"],
+            "value": kwargs["value"],
+            "short": kwargs["short"]
+        }
+
+        self._attachment["fields"].append(new_field)
+        return self
+
+    def action(self, **kwargs):
+        new_action = {
+            "name": kwargs["name"],
+            "text": kwargs["text"],
+            "type": kwargs["type"],
+            "url": kwargs["url"]
+        }
+
+        self._attachment["actions"].append(new_action)
+        return self
+
+    def build(self):
+        return self._attachment
