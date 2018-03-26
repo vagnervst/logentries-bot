@@ -1,8 +1,10 @@
+[packages]
+APScheduler = "*"
+requests = "*"
+slackclient = "*"
+prettyconf = "*"
+Flask = "*"
+gunicorn = "*"
+
 [requires]
 python_version = "3.6"
-
-[packages]
-APScheduler = '*'
-requests = '*'
-slackclient = '*'
-prettyconf = '*'
